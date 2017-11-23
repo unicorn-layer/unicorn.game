@@ -17,6 +17,9 @@ This is an early in-development version!
 
 
 
+## Prequisites
+Installing **[Unicorn](https://github.com/unicorn-layer/unicorn)** is required. If you install it later, some asset references may break!
+
 ## Installation
 ```bash
 git submodule add https://github.com/unicorn-layer/unicorn.game Assets/Unicorn.Game
