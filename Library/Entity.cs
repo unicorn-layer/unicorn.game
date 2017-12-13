@@ -94,14 +94,7 @@ namespace Unicorn.Game {
 				if (router.IsServer) {
 					if (!_id.IsStatic && _resourcePath == null)
 						throw new InvalidOperationException(string.Format("Missing entity resource path for dynamic entity: {0}", gameObject));
-
-					// TODO:
-					// Instantiate on client when client is added to the group.
-					// Destroy on client when client is removed from the group.
-					// Set remote ownership when added to the group & client is an owner.
-					// Set remote ownership when client is added as owner & part of the group.
-					// Remove remote ownership when client is removed as owner & part of the group.
-
+					
 					_group = new SetProxy<Connection>();
 					_group.Added(_untilDeactivate, conn => {
 						if (!_id.IsStatic) {
@@ -127,13 +120,17 @@ namespace Unicorn.Game {
 							});
 						}
 
-						foreach (var component in _components)
+						foreach (var component in _components) {
 							component.Value.Disconnected(conn);
+						}
 					});
-					
+
 					// TODO: Initialize owner set.
+					// Set remote ownership when added to the group & client is an owner.
+					// Set remote ownership when client is added as owner & part of the group.
+					// Remove remote ownership when client is removed as owner & part of the group.
 				}
-				
+
 				_active = true;
 
 				foreach(var component in GetComponents<IEntityComponentInternal>()) {
@@ -155,11 +152,14 @@ namespace Unicorn.Game {
 		void IEntityInternal.Deactivate() {
 			if (_active ? !(_active = false) : false) {
 				_map.Remove(_id);
-				_group.Target = null;
+				if (_group != null) {
+					_group.Target = null;
+				}
 
 				try {
-					foreach (var component in _components)
+					foreach (var component in _components) {
 						component.Value.Deactivate();
+					}
 				} finally {
 					_nextComponentId = 0;
 					_components.Clear();

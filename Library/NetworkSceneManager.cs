@@ -11,9 +11,7 @@ namespace Unicorn.Game {
 		public bool autoAssignOfflineScene = true;
 		[Tooltip("True, to load the offline scene on clients if loaded on the server. Even if not, the offline scene is loaded on clients when loaded on the server while the scene manager is active.")]
 		public bool synchronizeOfflineScene = false;
-
-
-
+		
 		protected override void OnEntityActivate() {
 			base.OnEntityActivate();
 			DontDestroyOnLoad(gameObject);
@@ -29,6 +27,9 @@ namespace Unicorn.Game {
 
 		protected override void OnEntityDeactivate() {
 			base.OnEntityDeactivate();
+			if (EntityNetwork.IsServer) {
+				SceneManager.sceneLoaded -= ServerSceneLoaded;
+			}
 			if (!string.IsNullOrEmpty(offlineScene)) {
 				SceneManager.LoadSceneAsync(offlineScene);
 			}

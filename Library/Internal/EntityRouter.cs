@@ -159,6 +159,7 @@ namespace Unicorn.Game.Internal {
 		private void DestroyDynamicEntities() {
 			foreach(var entity in GetLoadedEntities()) {
 				if (!((IEntityInternal)entity).Id.IsStatic) {
+					((IEntityInternal)entity).Deactivate();
 					UnityObject.Destroy(entity.gameObject);
 				}
 			}

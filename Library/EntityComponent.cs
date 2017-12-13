@@ -13,7 +13,7 @@ namespace Unicorn.Game {
 		private Entity _entity;
 		public Entity Entity {
 			get {
-				if (_entity == null)
+				if (!_entity && Active)
 					_entity = GetComponent<Entity>();
 				return _entity;
 			}
@@ -39,7 +39,15 @@ namespace Unicorn.Game {
 
 		protected void Send(int channelKey, MessageWriter msg) {
 			var router = EntityRouter.Require();
-			Send(router.IsServer ? Entity.Group : router.Connections, channelKey, msg);
+			if (router.IsServer) {
+				if (Active) {
+					Send(Entity.Group, channelKey, msg);
+				} else {
+					EntityInactiveSendWarning();
+				}
+			} else {
+				Send(router.Connections, channelKey, msg);
+			}
 		}
 		
 		protected void Send(IEnumerable<Connection> target, MessageWriter msg) {
@@ -47,11 +55,19 @@ namespace Unicorn.Game {
 		}
 		
 		protected void Send(IEnumerable<Connection> target, int channelKey, MessageWriter msg) {
-			target.Send(channelKey, payload => {
-				payload.Write(((IEntityInternal)Entity).Id);
-				payload.Write(_id);
-				msg(payload);
-			});
+			if (Active) {
+				target.Send(channelKey, payload => {
+					payload.Write(((IEntityInternal)Entity).Id);
+					payload.Write(_id);
+					msg(payload);
+				});
+			} else {
+				EntityInactiveSendWarning();
+			}
+		}
+
+		private void EntityInactiveSendWarning() {
+			Debug.LogWarning("Trying to send network message although the entity is not active.");
 		}
 		
 		protected void Endpoint(DataWriter payload, byte code) {
