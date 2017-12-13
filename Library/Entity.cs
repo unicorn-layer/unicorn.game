@@ -24,14 +24,49 @@ namespace Unicorn.Game {
 		// (Server only) Set of clients for which will be instantiated.
 		private SetProxy<Connection> _group;
 		public IReadonlyObservableSet<Connection> Group {
-			get { return _group; }
+			get {
+				if (_group == null)
+					throw new InvalidOperationException("Group can only be used on active server entities.");
+				return _group;
+			}
 			set {
 				if (_group == null)
-					throw new InvalidOperationException("Group must be set on the server.");
+					throw new InvalidOperationException("Group can only be used on active server entities.");
 				if (_id.IsStatic)
 					throw new InvalidOperationException("Group cannot be set for static entities.");
 				_group.Target = value;
 			}
+		}
+
+		// (Server only) Set of owners of this entity.
+		private SetProxy<Connection> _owners;
+		public IReadonlyObservableSet<Connection> Owners {
+			get {
+				if (_group == null)
+					throw new InvalidOperationException("Group can only be used on active server entities.");
+				return _owners;
+			}
+			set {
+				if (_owners == null)
+					throw new InvalidOperationException("Owners can only be used on active server entities.");
+				_owners.Target = value;
+			}
+		}
+
+		// (Server only) Set of owners for this entity that is used as default.
+		private SubSet<Connection> _ownerSet;
+		public SubSet<Connection> OwnerSet {
+			get {
+				if (_owners == null)
+					throw new InvalidOperationException("OwnerSet can only be used on active server entities.");
+				return _ownerSet;
+			}
+		}
+
+		// (Client only) True, if this client is part of the server entity's owner set.
+		private bool _isMine;
+		public bool IsMine {
+			get { return _isMine; }
 		}
 
 		// Map of entity-ids to active entities.
@@ -39,7 +74,7 @@ namespace Unicorn.Game {
 
 		// Map of resource paths to valid entity resources:
 		private static SortedDictionary<string, GameObject> _resources = new SortedDictionary<string, GameObject>();
-		
+
 		// Map of component-ids to.
 		private SortedDictionary<byte, IEntityComponentInternal> _components = new SortedDictionary<byte, IEntityComponentInternal>();
 		// Id which will be assigned to the next component.
@@ -77,11 +112,11 @@ namespace Unicorn.Game {
 		private void Awake() {
 			_untilDeactivate = new Disposable();
 		}
-		
+
 		private void OnDestroy() {
 			((IEntityInternal)this).Deactivate();
 		}
-		
+
 		EntityId IEntityInternal.Id { get { return _id; } set { _id = value; } }
 
 		void IEntityInternal.Activate() {
@@ -94,7 +129,7 @@ namespace Unicorn.Game {
 				if (router.IsServer) {
 					if (!_id.IsStatic && _resourcePath == null)
 						throw new InvalidOperationException(string.Format("Missing entity resource path for dynamic entity: {0}", gameObject));
-					
+
 					_group = new SetProxy<Connection>();
 					_group.Added(_untilDeactivate, conn => {
 						if (!_id.IsStatic) {
@@ -107,9 +142,17 @@ namespace Unicorn.Game {
 								payload.Write(transform.rotation);
 							});
 						}
+						ForeachComponent(c => c.Connected(conn));
 
-						foreach (var component in _components)
-							component.Value.Connected(conn);
+						if (_owners.Contains(conn)) {
+							conn.Send(payload => {
+								payload.Write(EntityId.None);
+								payload.Write(ClientMessage.SET_OWNERSHIP);
+								payload.Write(_id);
+								payload.Write(true);
+							});
+							ForeachComponent(c => c.OwnerConnected(conn));
+						}
 					});
 					_group.Removed(_untilDeactivate, conn => {
 						if (!_id.IsStatic) {
@@ -119,16 +162,39 @@ namespace Unicorn.Game {
 								payload.Write(_id);
 							});
 						}
+						ForeachComponent(c => c.Disconnected(conn));
 
-						foreach (var component in _components) {
-							component.Value.Disconnected(conn);
+						if (_owners.Contains(conn)) {
+							ForeachComponent(c => c.OwnerDisconnected(conn));
 						}
 					});
 
-					// TODO: Initialize owner set.
-					// Set remote ownership when added to the group & client is an owner.
-					// Set remote ownership when client is added as owner & part of the group.
-					// Remove remote ownership when client is removed as owner & part of the group.
+					_ownerSet = new SubSet<Connection>(router.Connections);
+					_owners = new SetProxy<Connection>(_ownerSet);
+					_owners.Added(_untilDeactivate, conn => {
+						if (_group.Contains(conn)) {
+							conn.Send(payload => {
+								payload.Write(EntityId.None);
+								payload.Write(ClientMessage.SET_OWNERSHIP);
+								payload.Write(_id);
+								payload.Write(true);
+							});
+							ForeachComponent(c => c.OwnerConnected(conn));
+						}
+						ForeachComponent(c => c.OwnerAdded(conn));
+					});
+					_ownerSet.Removed(_untilDeactivate, conn => {
+						if (_group.Contains(conn)) {
+							conn.Send(payload => {
+								payload.Write(EntityId.None);
+								payload.Write(ClientMessage.SET_OWNERSHIP);
+								payload.Write(_id);
+								payload.Write(false);
+							});
+							ForeachComponent(c => c.OwnerDisconnected(conn));
+						}
+						ForeachComponent(c => c.OwnerRemoved(conn));
+					});
 				}
 
 				_active = true;
@@ -148,18 +214,24 @@ namespace Unicorn.Game {
 				}
 			}
 		}
-		
+
 		void IEntityInternal.Deactivate() {
 			if (_active ? !(_active = false) : false) {
+				_untilDeactivate.Dispose();
 				_map.Remove(_id);
 				if (_group != null) {
 					_group.Target = null;
+					_group = null;
+				}
+				if (_owners != null) {
+					_owners = null;
+				}
+				if (_ownerSet != null) {
+					_ownerSet = null;
 				}
 
 				try {
-					foreach (var component in _components) {
-						component.Value.Deactivate();
-					}
+					ForeachComponent(c => c.Deactivate());
 				} finally {
 					_nextComponentId = 0;
 					_components.Clear();
@@ -177,8 +249,21 @@ namespace Unicorn.Game {
 			}
 		}
 
+		void IEntityInternal.SetOwnership(bool isMine) {
+			if (_isMine != isMine) {
+				_isMine = isMine;
+				ForeachComponent(c => c.OwnershipChanged(isMine));
+			}
+		}
 
-		
+		void ForeachComponent(Action<IEntityComponentInternal> action) {
+			foreach (var component in _components) {
+				action(component.Value);
+			}
+		}
+
+
+
 		/// <summary>
 		/// Load &amp; cache a valid entity resource.
 		/// </summary>

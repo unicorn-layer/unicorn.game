@@ -8,5 +8,10 @@ namespace Unicorn.Game.Internal {
 		void Receive(Message msg);
 		void Connected(Connection conn);
 		void Disconnected(Connection conn);
+		void OwnerAdded(Connection conn);
+		void OwnerConnected(Connection conn);
+		void OwnerRemoved(Connection conn);
+		void OwnerDisconnected(Connection conn);
+		void OwnershipChanged(bool isMine);
 	}
 }

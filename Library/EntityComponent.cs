@@ -82,8 +82,15 @@ namespace Unicorn.Game {
 
 		protected virtual void OnEntityClientConnected(Connection conn) { }
 		protected virtual void OnEntityClientDisconnected(Connection conn) { }
+
+		protected virtual void OnEntityOwnerAdded(Connection conn) { }
+		protected virtual void OnEntityOwnerConnected(Connection conn) { }
+		protected virtual void OnEntityOwnerRemoved(Connection conn) { }
+		protected virtual void OnEntityOwnerDisconnected(Connection conn) { }
+
+		protected virtual void OnEntityOwnershipChanged(bool isMine) { }
 		
-		
+
 
 		private void RegisterEndpoints<EndpointAttribute>(ref SortedDictionary<byte, MethodInfo> cache)
 			where EndpointAttribute : EndpointBaseAttribute {
@@ -148,6 +155,26 @@ namespace Unicorn.Game {
 
 		void IEntityComponentInternal.Disconnected(Connection conn) {
 			OnEntityClientDisconnected(conn);
+		}
+
+		void IEntityComponentInternal.OwnerAdded(Connection conn) {
+			OnEntityOwnerAdded(conn);
+		}
+
+		void IEntityComponentInternal.OwnerConnected(Connection conn) {
+			OnEntityOwnerConnected(conn);
+		}
+
+		void IEntityComponentInternal.OwnerRemoved(Connection conn) {
+			OnEntityOwnerRemoved(conn);
+		}
+
+		void IEntityComponentInternal.OwnerDisconnected(Connection conn) {
+			OnEntityOwnerDisconnected(conn);
+		}
+
+		void IEntityComponentInternal.OwnershipChanged(bool isMine) {
+			OnEntityOwnershipChanged(isMine);
 		}
 	}
 }

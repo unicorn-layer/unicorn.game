@@ -49,6 +49,10 @@ namespace Unicorn.Game.Internal {
 						case ClientMessage.DESTROY:
 							Client_DestroyEntity(msg.ReadEntityId());
 							break;
+
+						case ClientMessage.SET_OWNERSHIP:
+							Client_SetEntityOwnership(msg.ReadEntityId(), msg.ReadBoolean());
+							break;
 							
 						default:
 							Debug.LogWarningFormat("Unknown client control code: {0}", controlCode);
@@ -80,6 +84,12 @@ namespace Unicorn.Game.Internal {
 			var entity = Entity.Find(id);
 			if (entity)
 				UnityObject.Destroy(entity);
+		}
+
+		private void Client_SetEntityOwnership(EntityId id, bool isMine) {
+			var entity = Entity.Find(id);
+			if (entity)
+				((IEntityInternal)entity).SetOwnership(isMine);
 		}
 		
 		private void Server_SetClientScene(string sceneName, Connection client) {

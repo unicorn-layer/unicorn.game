@@ -7,5 +7,6 @@ namespace Unicorn.Game.Internal {
 		void Activate();
 		void Deactivate();
 		void Receive(Message msg);
+		void SetOwnership(bool isMine);
 	}
 }
