@@ -63,6 +63,18 @@ namespace Unicorn.Game {
 			}
 		}
 
+		public void SetOwner(Connection conn) {
+			if (_owners == null)
+				throw new InvalidOperationException("OwnerSet can only be used on active server entities.");
+			_owners.Target = _ownerSet;
+			if (conn == null) {
+				_ownerSet.Clear();
+			} else {
+				_ownerSet.RemoveWhere(c => c != conn);
+				_ownerSet.Add(conn);
+			}
+		}
+
 		// (Client only) True, if this client is part of the server entity's owner set.
 		private bool _isMine;
 		public bool IsMine {
