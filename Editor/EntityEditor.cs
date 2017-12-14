@@ -12,7 +12,7 @@ namespace Unicorn.Game {
 			var entity = (Entity)target;
 			var router = EntityRouter.Main;
 
-			if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(entity)) || true) {
+			if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(entity.gameObject))) {
 				var id = ((IEntityInternal)entity).Id;
 				EditorGUILayout.LabelField("Id", id.ToString());
 				EditorGUILayout.LabelField("Active", entity.Active.ToString());
