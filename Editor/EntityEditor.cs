@@ -25,7 +25,7 @@ namespace Unicorn.Game {
 						}
 						_showOwners = EditorGUILayout.Foldout(_showOwners, string.Format("Owners ({0})", entity.Owners.Count));
 						if (_showOwners) {
-							ConnectionEditorGUI.Draw(entity.Group);
+							ConnectionEditorGUI.Draw(entity.Owners);
 						}
 					} else if (router.IsClient) {
 						EditorGUILayout.LabelField("Is Mine", entity.IsMine.ToString());

@@ -70,6 +70,13 @@ namespace Unicorn.Game.Internal {
 							break;
 					}
 				}
+			} else {
+				var targetEntity = Entity.Find(targetEntityId);
+				if (targetEntity == null) {
+					Debug.LogWarningFormat("Message target entity not found: {0}", targetEntityId);
+				} else {
+					((IEntityInternal)targetEntity).Receive(msg);
+				}
 			}
 		}
 
