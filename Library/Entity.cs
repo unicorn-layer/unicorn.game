@@ -7,22 +7,33 @@ using Unicorn.Util;
 using UnityEngine;
 
 namespace Unicorn.Game {
+	/// <summary>
+	/// A network entity that can communicate with matching instances on remote hosts.
+	/// </summary>
 	[ExecuteInEditMode]
 	[DisallowMultipleComponent]
 	public sealed class Entity : MonoBehaviour, IEntityInternal {
 		[SerializeField]
 		private EntityId _id = EntityId.None;
-
-		// (Server & dynamic-entity only)
 		private string _resourcePath;
-
-		// True, if the entity has been activated.
 		private bool _active;
-		// Disposed when the entity is deactivated.
 		private Disposable _untilDeactivate;
-
-		// (Server only) Set of clients for which will be instantiated.
 		private SetProxy<Connection> _group;
+		private SetProxy<Connection> _owners;
+		private SubSet<Connection> _ownerSet;
+		private SortedDictionary<byte, IEntityComponentInternal> _components = new SortedDictionary<byte, IEntityComponentInternal>();
+		private byte _nextComponentId;
+		private bool _isMine;
+
+		private static SortedDictionary<EntityId, Entity> _map = new SortedDictionary<EntityId, Entity>();
+		private static SortedDictionary<string, GameObject> _resources = new SortedDictionary<string, GameObject>();
+
+
+
+		/// <summary>
+		/// (Server only) Set of clients to which this entity is visible.
+		/// </summary>
+		/// <value></value>
 		public IReadonlyObservableSet<Connection> Group {
 			get {
 				if (_group == null)
@@ -38,8 +49,10 @@ namespace Unicorn.Game {
 			}
 		}
 
-		// (Server only) Set of owners of this entity.
-		private SetProxy<Connection> _owners;
+		/// <summary>
+		/// (Server only) A set of owners that have authority on this entity.
+		/// </summary>
+		/// <value></value>
 		public IReadonlyObservableSet<Connection> Owners {
 			get {
 				if (_group == null)
@@ -53,8 +66,10 @@ namespace Unicorn.Game {
 			}
 		}
 
-		// (Server only) Set of owners for this entity that is used as default.
-		private SubSet<Connection> _ownerSet;
+		/// <summary>
+		/// (Server only) A set of owners for this entity that is used by default.
+		/// </summary>
+		/// <value></value>
 		public SubSet<Connection> OwnerSet {
 			get {
 				if (_owners == null)
@@ -63,6 +78,10 @@ namespace Unicorn.Game {
 			}
 		}
 
+		/// <summary>
+		/// (Server only) Set a connection as the single owner for this entity.
+		/// </summary>
+		/// <param name="conn"></param>
 		public void SetOwner(Connection conn) {
 			if (_owners == null)
 				throw new InvalidOperationException("OwnerSet can only be used on active server entities.");
@@ -75,25 +94,18 @@ namespace Unicorn.Game {
 			}
 		}
 
-		// (Client only) True, if this client is part of the server entity's owner set.
-		private bool _isMine;
+		/// <summary>
+		/// (Client only) True, if the client connection is part of the server entity owner set.
+		/// </summary>
+		/// <value></value>
 		public bool IsMine {
 			get { return _isMine; }
 		}
 
-		// Map of entity-ids to active entities.
-		private static SortedDictionary<EntityId, Entity> _map = new SortedDictionary<EntityId, Entity>();
-
-		// Map of resource paths to valid entity resources:
-		private static SortedDictionary<string, GameObject> _resources = new SortedDictionary<string, GameObject>();
-
-		// Map of component-ids to.
-		private SortedDictionary<byte, IEntityComponentInternal> _components = new SortedDictionary<byte, IEntityComponentInternal>();
-		// Id which will be assigned to the next component.
-		private byte _nextComponentId;
-
-
-
+		/// <summary>
+		/// True, if this entity has been activated. Do NOT use network api otherwise.
+		/// </summary>
+		/// <value></value>
 		public bool Active { get { return _active; } }
 
 

@@ -11,6 +11,11 @@ namespace Unicorn.Game {
 	[RequireComponent(typeof(Entity))]
 	public class EntityComponent<T> : MonoBehaviour, IEntityComponentInternal where T : EntityComponent<T> {
 		private Entity _entity;
+
+		/// <summary>
+		/// Get the entity this component is attached to.
+		/// </summary>
+		/// <value></value>
 		public Entity Entity {
 			get {
 				if (!_entity && Active)
@@ -19,24 +24,38 @@ namespace Unicorn.Game {
 			}
 		}
 
-		private bool _active;
-		public bool Active { get { return _active; } }
-
-		private Disposable _untilDeactivate = new Disposable();
-		public Disposable UntilDeactivate { get { return _untilDeactivate; } }
-
 		private byte _id;
+		private bool _active;
+		private Disposable _untilDeactivate = new Disposable();
 		private SortedDictionary<byte, MessageHandler> _endpoints;
-
 		private static SortedDictionary<byte, MethodInfo> _serverEndpoints;
 		private static SortedDictionary<byte, MethodInfo> _clientEndpoints;
-		
 
+		/// <summary>
+		/// True, if this entity has been activated. Do NOT use network api otherwise.
+		/// </summary>
+		/// <value></value>
+		public bool Active { get { return _active; } }
 
+		/// <summary>
+		/// A disposable that will disposed when the entity is deactivated.
+		/// </summary>
+		/// <value></value>
+		public Disposable UntilDeactivate { get { return _untilDeactivate; } }
+
+		/// <summary>
+		/// Send a network message to all available remote hosts.
+		/// </summary>
+		/// <param name="msg"></param>
 		protected void Send(MessageWriter msg) {
 			Send(0, msg);
 		}
 
+		/// <summary>
+		/// Send a network message to all available remote hosts on a specific channel.
+		/// </summary>
+		/// <param name="channelKey"></param>
+		/// <param name="msg"></param>
 		protected void Send(int channelKey, MessageWriter msg) {
 			var router = EntityRouter.Require();
 			if (router.IsServer) {
@@ -49,11 +68,22 @@ namespace Unicorn.Game {
 				Send(router.Connections, channelKey, msg);
 			}
 		}
-		
+
+		/// <summary>
+		/// Send a network message to the specified target.
+		/// </summary>
+		/// <param name="target"></param>
+		/// <param name="msg"></param>
 		protected void Send(IEnumerable<Connection> target, MessageWriter msg) {
 			Send(target, 0, msg);
 		}
-		
+
+		/// <summary>
+		/// Send a network message to the specified target on a specific channel.
+		/// </summary>
+		/// <param name="target"></param>
+		/// <param name="channelKey"></param>
+		/// <param name="msg"></param>
 		protected void Send(IEnumerable<Connection> target, int channelKey, MessageWriter msg) {
 			if (Active) {
 				target.Send(channelKey, payload => {
@@ -74,20 +104,55 @@ namespace Unicorn.Game {
 			payload.Write(code);
 		}
 
+		/// <summary>
+		/// Called when the entity has been activated.
+		/// </summary>
 		protected virtual void OnEntityActivate() { }
 
+		/// <summary>
+		/// Called when the entity has deen deactivated.
+		/// The default implementation disposes registered disposables.
+		/// </summary>
 		protected virtual void OnEntityDeactivate() {
 			_untilDeactivate.Dispose();
 		}
 
+		/// <summary>
+		/// (Server only) Called when this entity is visible to a client.
+		/// </summary>
+		/// <param name="conn"></param>
 		protected virtual void OnEntityClientConnected(Connection conn) { }
+		/// <summary>
+		/// (Server only) Called when this entity is no longer visible to a client.
+		/// </summary>
+		/// <param name="conn"></param>
 		protected virtual void OnEntityClientDisconnected(Connection conn) { }
 
+		/// <summary>
+		/// (Server only) Called when an owner has been added.
+		/// </summary>
+		/// <param name="conn"></param>
 		protected virtual void OnEntityOwnerAdded(Connection conn) { }
+		/// <summary>
+		/// (Server only) Called when an owner has been added and the entity is visible to that owner.
+		/// </summary>
+		/// <param name="conn"></param>
 		protected virtual void OnEntityOwnerConnected(Connection conn) { }
+		/// <summary>
+		/// (Server only) Called when an owner has been removed.
+		/// </summary>
+		/// <param name="conn"></param>
 		protected virtual void OnEntityOwnerRemoved(Connection conn) { }
+		/// <summary>
+		/// (Server only) Called when an owner has been removed and the entity was visible to that owner.
+		/// </summary>
+		/// <param name="conn"></param>
 		protected virtual void OnEntityOwnerDisconnected(Connection conn) { }
 
+		/// <summary>
+		/// (Client only) Called when the client connection has been added or removed from the server entity owner set.
+		/// </summary>
+		/// <param name="isMine">true, if added otherwise false.</param>
 		protected virtual void OnEntityOwnershipChanged(bool isMine) { }
 		
 
