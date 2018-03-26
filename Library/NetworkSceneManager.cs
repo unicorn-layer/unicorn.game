@@ -1,4 +1,5 @@
 ﻿
+using System;
 using Unicorn.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,6 +12,16 @@ namespace Unicorn.Game {
 		public bool autoAssignOfflineScene = true;
 		[Tooltip("True, to load the offline scene on clients if loaded on the server. Even if not, the offline scene is loaded on clients when loaded on the server while the scene manager is active.")]
 		public bool synchronizeOfflineScene = false;
+
+		private Action<string> _loadScene = null;
+
+		/// <summary>
+		/// Set a custom method for loading a scene asynchronously.
+		/// </summary>
+		/// <param name="loadScene">The custom method or <c>null</c> to use the default.</param>
+		public void SetLoadScene(Action<string> loadScene) {
+			_loadScene = loadScene;
+		}
 
 		private void Awake() {
 			DontDestroyOnLoad(gameObject);
@@ -32,7 +43,7 @@ namespace Unicorn.Game {
 				SceneManager.sceneLoaded -= ServerSceneLoaded;
 			}
 			if (!string.IsNullOrEmpty(offlineScene)) {
-				SceneManager.LoadSceneAsync(offlineScene);
+				LoadLocalScene(offlineScene);
 			}
 		}
 
@@ -47,6 +58,14 @@ namespace Unicorn.Game {
 
 
 
+		private void LoadLocalScene(string name) {
+			if (_loadScene == null) {
+				SceneManager.LoadSceneAsync(name);
+			} else {
+				_loadScene(name);
+			}
+		}
+
 		private void ServerSceneLoaded(Scene scene, LoadSceneMode mode) {
 			Send(LoadScene(scene.name));
 		}
@@ -57,7 +76,7 @@ namespace Unicorn.Game {
 
 		[Client((byte)Msg.LoadScene)]
 		private void LoadScene(Message msg) {
-			SceneManager.LoadSceneAsync(msg.ReadString());
+			LoadLocalScene(msg.ReadString());
 		}
 
 		private MessageWriter LoadScene(string name) {
