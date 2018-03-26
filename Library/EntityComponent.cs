@@ -26,10 +26,13 @@ namespace Unicorn.Game {
 
 		private byte _id;
 		private bool _active;
+		private bool _isTracked;
 		private Disposable _untilDeactivate = new Disposable();
 		private SortedDictionary<byte, MessageHandler> _endpoints;
 		private static SortedDictionary<byte, MethodInfo> _serverEndpoints;
 		private static SortedDictionary<byte, MethodInfo> _clientEndpoints;
+		private static T _main;
+		private static Set<T> _tracked = new Set<T>();
 
 		/// <summary>
 		/// True, if this entity has been activated. Do NOT use network api otherwise.
@@ -42,6 +45,48 @@ namespace Unicorn.Game {
 		/// </summary>
 		/// <value></value>
 		public Disposable UntilDeactivate { get { return _untilDeactivate; } }
+
+		/// <summary>
+		/// Get the instance that is marked as the main instance.
+		/// </summary>
+		/// <value></value>
+		public static T Main { get { return _main; } }
+
+		/// <summary>
+		/// Get a set of tracked instances.
+		/// </summary>
+		/// <value></value>
+		public static IReadonlyObservableSet<T> Tracked { get { return _tracked; } }
+
+		/// <summary>
+		/// Mark this instance as the main instance.
+		/// </summary>
+		/// <param name="replace"><c>true</c> to replace an existing instance.</param>
+		protected bool SetMain(bool replace) {
+			if (_main != this) {
+				if (!replace && _main) {
+					return false;
+				}
+				_main = (T)this;
+			}
+			return true;
+		}
+
+		/// <summary>
+		/// Track this instance.
+		/// </summary>
+		protected bool Track() {
+			_isTracked = true;
+			return _tracked.Add((T)this);
+		}
+
+		/// <summary>
+		/// Untrack this instance.
+		/// </summary>
+		protected bool Untrack() {
+			_isTracked = false;
+			return _tracked.Remove((T)this);
+		}
 
 		/// <summary>
 		/// Send a network message to all available remote hosts.
@@ -115,6 +160,9 @@ namespace Unicorn.Game {
 		/// </summary>
 		protected virtual void OnEntityDeactivate() {
 			_untilDeactivate.Dispose();
+			if (_isTracked) {
+				Untrack();
+			}
 		}
 
 		/// <summary>
