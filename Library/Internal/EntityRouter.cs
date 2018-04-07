@@ -90,7 +90,7 @@ namespace Unicorn.Game.Internal {
 		private void Client_DestroyEntity(EntityId id) {
 			var entity = Entity.Find(id);
 			if (entity)
-				UnityObject.Destroy(entity);
+				UnityObject.Destroy(entity.gameObject);
 		}
 
 		private void Client_SetEntityOwnership(EntityId id, bool isMine) {
