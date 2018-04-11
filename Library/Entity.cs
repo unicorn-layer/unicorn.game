@@ -241,7 +241,6 @@ namespace Unicorn.Game {
 
 		void IEntityInternal.Deactivate() {
 			if (_active ? !(_active = false) : false) {
-				_untilDeactivate.Dispose();
 				_map.Remove(_id);
 				if (_group != null) {
 					_group.Target = null;
@@ -253,13 +252,13 @@ namespace Unicorn.Game {
 				if (_ownerSet != null) {
 					_ownerSet = null;
 				}
-
 				try {
 					ForeachComponent(c => c.Deactivate());
 				} finally {
 					_nextComponentId = 0;
 					_components.Clear();
 				}
+				_untilDeactivate.Dispose();
 			}
 		}
 
@@ -311,6 +310,26 @@ namespace Unicorn.Game {
 			}
 		}
 
+		public static GameObject GetResource<T>(string path) where T : Component {
+			if (path == null)
+				throw new ArgumentNullException("path");
+
+			GameObject res;
+			if (_resources.TryGetValue(path, out res)) {
+				return res;
+			} else {
+				res = Resources.Load<GameObject>(path);
+				if (!res)
+					throw new MissingReferenceException(string.Format("Missing entity resource: {0}", path));
+				if (!res.GetComponent<Entity>())
+					throw new MissingComponentException(string.Format("Entity resource must have an Entity component: {0}", path));
+				if (!res.GetComponent<T>())
+					throw new MissingComponentException(string.Format("Entity resource must have an {0} component: {1}", typeof(T).Name, path));
+				_resources.Add(path, res);
+				return res;
+			}
+		}
+
 		/// <summary>
 		/// (Server-only) Creates a dynamic entity.
 		/// </summary>
@@ -327,6 +346,24 @@ namespace Unicorn.Game {
 			entity._resourcePath = resourcePath;
 			((IEntityInternal)entity).Activate();
 			return entity;
+		}
+
+		/// <summary>
+		/// (Server-only) Creates a dynamic entity.
+		/// </summary>
+		/// <param name="resourcePath">The resource path.</param>
+		/// <returns>The local entity instance.</returns>
+		public static T Create<T>(string resourcePath) where T : Component {
+			if (!EntityRouter.Require().IsServer)
+				throw new InvalidOperationException("Dynamic entities must be created on the server.");
+
+			var res = GetResource<T>(resourcePath);
+			var id = EntityIds.Allocate();
+			var entity = Instantiate(res).GetComponent<Entity>();
+			entity._id = id;
+			entity._resourcePath = resourcePath;
+			((IEntityInternal)entity).Activate();
+			return entity.GetComponent<T>();
 		}
 
 		/// <summary>

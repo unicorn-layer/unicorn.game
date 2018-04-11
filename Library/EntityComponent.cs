@@ -10,6 +10,11 @@ using UnityEngine;
 namespace Unicorn.Game {
 	[RequireComponent(typeof(Entity))]
 	public class EntityComponent<T> : MonoBehaviour, IEntityComponentInternal where T : EntityComponent<T> {
+		public EntityComponent() {
+			if (!typeof(T).IsAssignableFrom(GetType()))
+				throw new InvalidEntityComponentException(GetType(), typeof(T));
+		}
+
 		private Entity _entity;
 
 		/// <summary>
