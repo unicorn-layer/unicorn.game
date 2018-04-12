@@ -29,14 +29,9 @@ public static void SetupEntityNetwork() {
 }
 ```
 
-## Network Manager
+## [NetworkManager](NetworkManagement.md)
 Create an gameobject prefab in `Resources/NetworkManager` and add an `Entity` component.<br/>
 Later on, you will add more entity components for managing the network part of your game.
-
-## Default Connection Groups
-The `EntityNetwork` provides two basic connection sets.
-+ `EntityNetwork.Connections` - All connected clients.
-+ `EntityNetwork.Scene` - All clients that have loaded the same scene as the server.
 
 <br/>
 
