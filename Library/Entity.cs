@@ -263,6 +263,11 @@ namespace Unicorn.Game {
 		}
 
 		void IEntityInternal.Receive(Message msg) {
+			if (EntityNetwork.IsServer && !Group.Contains(msg.Sender)) {
+				Debug.LogErrorFormat("Message recieved from a client outside the entity group.");
+				return;
+			}
+
 			var componentId = msg.ReadByte();
 			IEntityComponentInternal component;
 			if (_components.TryGetValue(componentId, out component)) {
