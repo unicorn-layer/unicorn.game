@@ -149,7 +149,7 @@ namespace Unicorn.Game {
 		private void EntityInactiveSendWarning() {
 			Debug.LogWarning("Trying to send network message although the entity is not active.");
 		}
-		
+
 		protected void Endpoint(DataWriter payload, byte code) {
 			payload.Write(code);
 		}
@@ -207,7 +207,7 @@ namespace Unicorn.Game {
 		/// </summary>
 		/// <param name="isMine">true, if added otherwise false.</param>
 		protected virtual void OnEntityOwnershipChanged(bool isMine) { }
-		
+
 
 
 		private void RegisterEndpoints<EndpointAttribute>(ref SortedDictionary<byte, MethodInfo> cache)
