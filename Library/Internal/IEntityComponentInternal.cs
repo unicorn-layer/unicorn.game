@@ -3,6 +3,7 @@ using Unicorn.IO;
 
 namespace Unicorn.Game.Internal {
 	public interface IEntityComponentInternal {
+		byte Id { get; }
 		void Activate(byte componentId);
 		void Deactivate();
 		void Receive(Message msg);

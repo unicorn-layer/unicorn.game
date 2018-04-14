@@ -78,6 +78,19 @@ namespace Unicorn.Game {
 		}
 
 		/// <summary>
+		/// Mark this instance as the main instance.
+		/// </summary>
+		/// <exception cref="InvalidOperationException">If another instance is already the main instance.</exception>
+		protected void SetMain() {
+			if (_main != this) {
+				if (_main) {
+					throw new InvalidOperationException();
+				}
+				_main = (T)this;
+			}
+		}
+
+		/// <summary>
 		/// Track this instance.
 		/// </summary>
 		protected bool Track() {
@@ -230,6 +243,10 @@ namespace Unicorn.Game {
 			foreach(var pair in cache) {
 				_endpoints.Add(pair.Key, (MessageHandler)Delegate.CreateDelegate(typeof(MessageHandler), this, pair.Value));
 			}
+		}
+
+		byte IEntityComponentInternal.Id {
+			get { return _id; }
 		}
 
 		void IEntityComponentInternal.Activate(byte componentId) {

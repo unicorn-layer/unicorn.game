@@ -8,5 +8,6 @@ namespace Unicorn.Game.Internal {
 		void Deactivate();
 		void Receive(Message msg);
 		void SetOwnership(bool isMine);
+		T GetComponent<T>(byte id) where T : EntityComponent<T>;
 	}
 }

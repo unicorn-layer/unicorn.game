@@ -284,6 +284,12 @@ namespace Unicorn.Game {
 			}
 		}
 
+		T IEntityInternal.GetComponent<T>(byte id) {
+			IEntityComponentInternal component = null;
+			_components.TryGetValue(id, out component);
+			return (T)component;
+		}
+
 		void ForeachComponent(Action<IEntityComponentInternal> action) {
 			foreach (var component in _components) {
 				action(component.Value);
